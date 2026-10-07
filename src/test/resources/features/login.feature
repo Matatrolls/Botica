@@ -12,11 +12,11 @@ Feature: Login
 
   Scenario Outline: Failed login attempts
     When the user enters their email "<email>" and password "<password>"
-    Then they should see the error message "<error_message>"
+    Then they should see the error message
 
     Examples:
-      | email                  | password     |  |
-      | invalid_email@test.com | Password123* |  |
-      | usuario@ejemplo.com    | WrongPass    |  |
-      |                        | Password123* |  |
-      | usuario@ejemplo.com    |              |  |
+      | email                  | password     |
+      | invalid_email@test.com | Password123* |
+      | usuario@ejemplo.com    | WrongPass    |
+      |                        | Password123* |
+      | usuario@ejemplo.com    |              |

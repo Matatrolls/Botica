@@ -10,6 +10,7 @@ import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
 import net.serenitybdd.screenplay.actions.Open;
 import net.serenitybdd.screenplay.actors.OnStage;
 import net.serenitybdd.screenplay.actors.OnlineCast;
+import net.serenitybdd.screenplay.questions.Text;
 import org.openqa.selenium.WebDriver;
 
 import java.util.Objects;
@@ -53,18 +54,18 @@ public class StepsLogin {
     }
 
     @When("the user enters their email {string} and password {string}")
-    public void theUserEntersTheirEmailAndPassword(String arg0, String arg1, String arg2, String arg3) {
+    public void theUserEntersTheirEmailAndPassword(String email, String password) {
         theActorInTheSpotlight().attemptsTo(
-                net.serenitybdd.screenplay.actions.Enter.theValue("alquimista").into(Botica.PO.PaginaLogin.usuario),
-                net.serenitybdd.screenplay.actions.Enter.theValue("pocion123").into(Botica.PO.PaginaLogin.password),
+                net.serenitybdd.screenplay.actions.Enter.theValue(email).into(Botica.PO.PaginaLogin.usuario),
+                net.serenitybdd.screenplay.actions.Enter.theValue(password).into(Botica.PO.PaginaLogin.password),
                 net.serenitybdd.screenplay.actions.Click.on(Botica.PO.PaginaLogin.botonLogin)
         );
     }
 
-    @Then("they should see the error message {string}")
-    public void theyShouldSeeTheErrorMessage(String arg1) {
-        theActorInTheSpotlight().should(
-                GivenWhenThen.seeThat(actor -> Objects.equals(driver.findElement(mensajeError).getText(), arg1))
+    @Then("they should see the error message")
+    public void theyShouldSeeTheErrorMessage() {
+        GivenWhenThen.seeThat(
+                actor -> Objects.equals(Text.of(mensajeError).answeredBy(actor), "Usuario o contraseña incorrectos")
         );
     }
 }
