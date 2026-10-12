@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedido confirmado | La Botica del Alquimista</title>
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header class="barra"></header>
+
+<main class="contenido contenido-angosto">
+    <section class="tarjeta-confirmacion">
+        <div class="emblema" aria-hidden="true">✨</div>
+        <h1>¡Pedido confirmado!</h1>
+        <p>Tu número de pedido es <strong data-testid="numero-pedido"></strong></p>
+        <p class="destinatario"></p>
+
+        <h2>Resumen de la compra</h2>
+        <ul class="lista-resumen"></ul>
+        <dl class="totales">
+            <div><dt>Subtotal</dt><dd id="conf-subtotal"></dd></div>
+            <div class="fila-descuento"><dt>Descuento</dt><dd id="conf-descuento"></dd></div>
+            <div><dt>IVA (19%)</dt><dd id="conf-iva"></dd></div>
+            <div><dt>Envío</dt><dd id="conf-envio"></dd></div>
+            <div class="fila-total"><dt>Total pagado</dt><dd id="conf-total"></dd></div>
+        </dl>
+
+        <a href="catalogo.html" class="btn-primario">Seguir comprando</a>
+    </section>
+    <p class="sin-pedido" hidden>No hay un pedido reciente. <a href="catalogo.html">Ir al catálogo</a></p>
+</main>
+
+<script src="js/comun.js"></script>
+<script>
+    exigirSesion();
+    pintarEncabezado('');
+
+    const pedido = leer(CLAVES.ultimoPedido, null);
+    if (!pedido) {
+        document.querySelector('.tarjeta-confirmacion').hidden = true;
+        document.querySelector('.sin-pedido').hidden = false;
+    } else {
+        document.querySelector('[data-testid="numero-pedido"]').textContent = pedido.numero;
+        document.querySelector('.destinatario').textContent =
+            'Lo enviaremos a ' + pedido.cliente.nombre + ', ' + pedido.cliente.direccion + ', ' + pedido.cliente.ciudad +
+            ' (envío ' + (pedido.metodo === 'express' ? 'express' : 'normal') + ').';
+        document.querySelector('.lista-resumen').innerHTML = pedido.lineas.map(l =>
+            `<li><span>${l.cantidad} × ${escaparHtml(l.nombre)}</span><span>${formatoPesos(l.precio * l.cantidad)}</span></li>`
+        ).join('');
+        document.getElementById('conf-subtotal').textContent = formatoPesos(pedido.subtotal);
+        document.querySelector('.fila-descuento').hidden = pedido.descuento === 0;
+        document.getElementById('conf-descuento').textContent = formatoPesos(-pedido.descuento);
+        document.getElementById('conf-iva').textContent = formatoPesos(pedido.iva);
+        document.getElementById('conf-envio').textContent = pedido.envio === 0 ? 'Gratis' : formatoPesos(pedido.envio);
+        document.getElementById('conf-total').textContent = formatoPesos(pedido.total);
+    }
+</script>
+</body>
+</html>

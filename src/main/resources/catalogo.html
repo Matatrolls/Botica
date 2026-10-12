@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo | La Botica del Alquimista</title>
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header class="barra"></header>
+
+<main class="contenido">
+    <h1>Catálogo</h1>
+
+    <section class="filtros" aria-label="Filtros del catálogo">
+        <div class="campo">
+            <label for="buscar">Buscar por nombre</label>
+            <input type="search" id="buscar" placeholder="Ej: poción, luna...">
+        </div>
+        <div class="campo">
+            <label>Categoría
+                <select name="categoria">
+                    <option value="Todas">Todas</option>
+                    <option value="Pociones">Pociones</option>
+                    <option value="Ingredientes">Ingredientes</option>
+                    <option value="Amuletos">Amuletos</option>
+                </select>
+            </label>
+        </div>
+    </section>
+
+    <p class="mensaje" data-testid="mensaje-catalogo" role="status" hidden></p>
+
+    <section class="grilla-productos" aria-label="Productos"></section>
+    <p class="sin-resultados" hidden>No se encontraron productos.</p>
+</main>
+
+<script src="js/comun.js"></script>
+<script>
+    exigirSesion();
+    pintarEncabezado('catalogo');
+
+    const grilla = document.querySelector('.grilla-productos');
+    const mensaje = document.querySelector('[data-testid="mensaje-catalogo"]');
+    const campoBuscar = document.getElementById('buscar');
+    const selectCategoria = document.querySelector('[name="categoria"]');
+
+    function mostrarMensaje(texto, tipo) {
+        mensaje.textContent = texto;
+        mensaje.className = 'mensaje ' + (tipo || 'exito');
+        mensaje.hidden = false;
+    }
+
+    function pintarProductos() {
+        const texto = campoBuscar.value.trim().toLowerCase();
+        const categoria = selectCategoria.value;
+        const stock = obtenerStock();
+
+        const filtrados = PRODUCTOS.filter(p =>
+            (categoria === 'Todas' || p.categoria === categoria) &&
+            p.nombre.toLowerCase().includes(texto)
+        );
+
+        grilla.innerHTML = filtrados.map(p => {
+            const disponible = stock[p.id];
+            const agotado = disponible <= 0;
+            return `
+        <article class="tarjeta-producto${agotado ? ' agotado' : ''}">
+          <div class="icono-producto" aria-hidden="true">${p.icono}</div>
+          <h3 class="nombre-producto">${escaparHtml(p.nombre)}</h3>
+          <p class="categoria-producto">${p.categoria}</p>
+          <p class="precio">${formatoPesos(p.precio)}</p>
+          <p class="stock">Disponibles: <span>${disponible}</span></p>
+          <div class="acciones-producto">
+            <input type="number" class="cantidad" min="1" max="5" value="1"
+                   aria-label="Cantidad de ${escaparHtml(p.nombre)}" ${agotado ? 'disabled' : ''}>
+            <button type="button" class="btn-agregar" data-producto="${p.id}" ${agotado ? 'disabled' : ''}>
+              ${agotado ? 'Agotado' : 'Agregar al carrito'}
+            </button>
+          </div>
+        </article>`;
+        }).join('');
+
+        document.querySelector('.sin-resultados').hidden = filtrados.length > 0;
+    }
+
+    grilla.addEventListener('click', function (evento) {
+        const boton = evento.target.closest('.btn-agregar');
+        if (!boton) return;
+
+        const id = boton.dataset.producto;
+        const producto = productoPorId(id);
+        const cantidad = Number(boton.parentElement.querySelector('.cantidad').value);
+        const stock = obtenerStock();
+        const carrito = obtenerCarrito();
+        const linea = carrito.find(l => l.id === id);
+        const enCarrito = linea ? linea.cantidad : 0;
+
+        if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > MAX_POR_PRODUCTO) {
+            mostrarMensaje('La cantidad debe estar entre 1 y 5', 'error');
+            return;
+        }
+        if (enCarrito + cantidad > MAX_POR_PRODUCTO) {
+            mostrarMensaje('Solo puedes llevar hasta 5 unidades de este producto', 'error');
+            return;
+        }
+        if (enCarrito + cantidad > stock[id]) {
+            mostrarMensaje('No hay suficiente stock disponible', 'error');
+            return;
+        }
+
+        if (linea) {
+            linea.cantidad += cantidad;
+        } else {
+            carrito.push({ id: id, cantidad: cantidad });
+        }
+        guardarCarrito(carrito);
+        pintarEncabezado('catalogo');
+        mostrarMensaje('Se agregó ' + producto.nombre + ' al carrito', 'exito');
+    });
+
+    campoBuscar.addEventListener('input', pintarProductos);
+    selectCategoria.addEventListener('change', pintarProductos);
+
+    if (new URLSearchParams(window.location.search).get('reiniciado')) {
+        mostrarMensaje('Los datos de la tienda se reiniciaron', 'exito');
+    }
+
+    pintarProductos();
+</script>
+</body>
+</html>

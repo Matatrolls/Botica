@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago | La Botica del Alquimista</title>
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header class="barra"></header>
+
+<main class="contenido">
+    <h1>Datos de envío y pago</h1>
+
+    <div class="disposicion-carrito">
+        <form id="form-checkout" class="formulario" novalidate>
+            <fieldset>
+                <legend>Datos de envío</legend>
+
+                <div class="campo">
+                    <label for="nombreCompleto">Nombre completo</label>
+                    <input type="text" id="nombreCompleto" name="nombre" autocomplete="name">
+                    <span class="error-campo" data-campo="nombre"></span>
+                </div>
+
+                <div class="campo">
+                    <label for="inp-x92">Correo electrónico</label>
+                    <input type="email" id="inp-x92" name="correo" autocomplete="email">
+                    <span class="error-campo" data-campo="correo"></span>
+                </div>
+
+                <div class="campo">
+                    <label for="f-dir-01">Dirección</label>
+                    <input type="text" id="f-dir-01" data-testid="direccion" autocomplete="street-address">
+                    <span class="error-campo" data-campo="direccion"></span>
+                </div>
+
+                <div class="fila-campos">
+                    <div class="campo">
+                        <label for="c1">Ciudad</label>
+                        <input type="text" id="c1" name="ciudad" autocomplete="address-level2">
+                        <span class="error-campo" data-campo="ciudad"></span>
+                    </div>
+                    <div class="campo">
+                        <label for="t-771">Teléfono</label>
+                        <input type="tel" id="t-771" name="telefono" autocomplete="tel" placeholder="10 dígitos">
+                        <span class="error-campo" data-campo="telefono"></span>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Método de envío</legend>
+                <label class="opcion-radio">
+                    <input type="radio" name="envio" value="normal" checked>
+                    <span>Normal (3 a 5 días) — $8.000, gratis desde $150.000</span>
+                </label>
+                <label class="opcion-radio">
+                    <input type="radio" name="envio" value="express">
+                    <span>Express por lechuza (24 horas) — $15.000</span>
+                </label>
+            </fieldset>
+
+            <p class="mensaje" data-testid="mensaje-checkout" role="alert" hidden></p>
+
+            <button type="submit" id="btn-confirmar" class="btn-primario">Confirmar pedido</button>
+        </form>
+
+        <aside class="panel-resumen" aria-label="Resumen del pedido">
+            <h2>Tu pedido</h2>
+            <ul class="lista-resumen"></ul>
+            <dl class="totales">
+                <div><dt>Subtotal</dt><dd id="resumen-subtotal"></dd></div>
+                <div class="fila-descuento"><dt>Descuento <span class="codigo-cupon"></span></dt><dd data-testid="resumen-descuento"></dd></div>
+                <div><dt>IVA (19%)</dt><dd class="valor-iva"></dd></div>
+                <div><dt>Envío</dt><dd data-testid="resumen-envio"></dd></div>
+                <div class="fila-total"><dt>Total a pagar</dt><dd id="total-pagar"></dd></div>
+            </dl>
+            <a href="carrito.html" class="enlace-volver">Volver al carrito</a>
+        </aside>
+    </div>
+</main>
+
+<script src="js/comun.js"></script>
+<script>
+    exigirSesion();
+    if (obtenerCarrito().length === 0) {
+        window.location.href = 'carrito.html';
+    }
+    pintarEncabezado('');
+
+    const formulario = document.getElementById('form-checkout');
+
+    function calcularTotales() {
+        const subtotal = subtotalCarrito();
+        const descuento = valorDescuento(subtotal);
+        const baseConDescuento = subtotal - descuento;
+        const metodo = document.querySelector('[name="envio"]:checked').value;
+
+        let envio;
+        if (metodo === 'express') {
+            envio = ENVIO_EXPRESS;
+        } else {
+            envio = baseConDescuento >= ENVIO_GRATIS_DESDE ? 0 : ENVIO_NORMAL;
+        }
+
+        const iva = Math.round(subtotal * IVA);
+        const total = baseConDescuento + iva + envio;
+
+        return { subtotal, descuento, iva, envio, total, metodo };
+    }
+
+    function pintarResumen() {
+        const t = calcularTotales();
+        const codigo = cuponAplicado();
+
+        document.querySelector('.lista-resumen').innerHTML = obtenerCarrito().map(linea => {
+            const p = productoPorId(linea.id);
+            return `<li><span>${linea.cantidad} × ${escaparHtml(p.nombre)}</span><span>${formatoPesos(p.precio * linea.cantidad)}</span></li>`;
+        }).join('');
+
+        document.getElementById('resumen-subtotal').textContent = formatoPesos(t.subtotal);
+        document.querySelector('.fila-descuento').hidden = t.descuento === 0;
+        document.querySelector('.codigo-cupon').textContent = codigo ? '(' + codigo + ')' : '';
+        document.querySelector('[data-testid="resumen-descuento"]').textContent = formatoPesos(-t.descuento);
+        document.querySelector('.valor-iva').textContent = formatoPesos(t.iva);
+        document.querySelector('[data-testid="resumen-envio"]').textContent = t.envio === 0 ? 'Gratis' : formatoPesos(t.envio);
+        document.getElementById('total-pagar').textContent = formatoPesos(t.total);
+    }
+
+    function validarFormulario() {
+        const valores = {
+            nombre: document.getElementById('nombreCompleto').value.trim(),
+            correo: document.querySelector('[name="correo"]').value.trim(),
+            direccion: document.querySelector('[data-testid="direccion"]').value.trim(),
+            ciudad: document.querySelector('[name="ciudad"]').value.trim(),
+            telefono: document.querySelector('[name="telefono"]').value.trim()
+        };
+        const errores = {};
+
+        Object.keys(valores).forEach(campo => {
+            if (!valores[campo]) errores[campo] = 'Este campo es obligatorio';
+        });
+        if (valores.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valores.correo)) {
+            errores.correo = 'Ingresa un correo válido';
+        }
+        if (valores.telefono && !/^\d{10}$/.test(valores.telefono)) {
+            errores.telefono = 'El teléfono debe tener 10 dígitos';
+        }
+
+        document.querySelectorAll('.error-campo').forEach(span => {
+            span.textContent = errores[span.dataset.campo] || '';
+        });
+
+        return { valido: Object.keys(errores).length === 0, valores };
+    }
+
+    document.querySelectorAll('[name="envio"]').forEach(radio => {
+        radio.addEventListener('change', pintarResumen);
+    });
+
+    formulario.addEventListener('submit', async function (evento) {
+        evento.preventDefault();
+        const mensaje = document.querySelector('[data-testid="mensaje-checkout"]');
+        mensaje.hidden = true;
+
+        const resultado = validarFormulario();
+        if (!resultado.valido) {
+            mensaje.textContent = 'Revisa los campos marcados';
+            mensaje.className = 'mensaje error';
+            mensaje.hidden = false;
+            return;
+        }
+
+        const boton = document.getElementById('btn-confirmar');
+        boton.disabled = true;
+        mostrarCargando('Preparando tu pedido en el caldero...');
+        await esperaAleatoria(800, 1600);
+
+        const totales = calcularTotales();
+        const carrito = obtenerCarrito();
+        const stock = obtenerStock();
+        carrito.forEach(linea => { stock[linea.id] -= linea.cantidad; });
+        guardar(CLAVES.stock, stock);
+
+        const pedido = {
+            numero: 'BOT-' + String(Math.floor(1000 + Math.random() * 9000)),
+            fecha: new Date().toISOString(),
+            cliente: resultado.valores,
+            lineas: carrito.map(l => ({ nombre: productoPorId(l.id).nombre, cantidad: l.cantidad, precio: productoPorId(l.id).precio })),
+            cupon: cuponAplicado(),
+            ...totales
+        };
+
+        const pedidos = leer(CLAVES.pedidos, []);
+        pedidos.push(pedido);
+        guardar(CLAVES.pedidos, pedidos);
+        guardar(CLAVES.ultimoPedido, pedido);
+        guardarCarrito([]);
+        borrar(CLAVES.cupon);
+
+        window.location.href = 'confirmacion.html';
+    });
+
+    pintarResumen();
+</script>
+</body>
+</html>

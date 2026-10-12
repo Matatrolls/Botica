@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito | La Botica del Alquimista</title>
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+<header class="barra"></header>
+
+<main class="contenido">
+    <h1>Tu carrito</h1>
+
+    <p class="mensaje" data-testid="mensaje-carrito" role="status" hidden></p>
+
+    <p class="carrito-vacio" data-testid="carrito-vacio" hidden>
+        Tu carrito está vacío. <a href="catalogo.html">Ver el catálogo</a>
+    </p>
+
+    <div class="disposicion-carrito">
+        <div class="envoltura-tabla">
+            <table class="tabla-carrito">
+                <thead>
+                <tr>
+                    <th scope="col">Producto</th>
+                    <th scope="col">Precio</th>
+                    <th scope="col">Cantidad</th>
+                    <th scope="col">Subtotal</th>
+                    <th scope="col"><span class="solo-lector">Acciones</span></th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <aside class="panel-resumen" aria-label="Resumen del carrito">
+            <h2>Resumen</h2>
+
+            <div class="bloque-cupon">
+                <label>Cupón de descuento
+                    <input type="text" name="cupon" autocomplete="off" placeholder="Ej: LUNA10">
+                </label>
+                <button type="button" id="btn-aplicar-cupon" class="btn-secundario">Aplicar</button>
+                <p id="mensaje-cupon" class="mensaje-cupon" role="status" hidden></p>
+                <p class="cupon-activo" hidden>
+                    Cupón aplicado: <strong data-testid="cupon-aplicado"></strong>
+                    <button type="button" class="btn-texto" data-testid="quitar-cupon">Quitar cupón</button>
+                </p>
+            </div>
+
+            <dl class="totales">
+                <div><dt>Subtotal</dt><dd id="subtotal">$0</dd></div>
+                <div class="fila-descuento" hidden><dt>Descuento</dt><dd data-testid="descuento">$0</dd></div>
+                <div class="fila-total"><dt>Total parcial</dt><dd class="total-parcial">$0</dd></div>
+            </dl>
+            <p class="nota">El IVA y el envío se calculan en el pago.</p>
+
+            <button type="button" class="btn-primario btn-pagar">Ir a pagar</button>
+        </aside>
+    </div>
+</main>
+
+<script src="js/comun.js"></script>
+<script>
+    exigirSesion();
+
+    const cuerpoTabla = document.querySelector('.tabla-carrito tbody');
+    const mensaje = document.querySelector('[data-testid="mensaje-carrito"]');
+    const mensajeCupon = document.getElementById('mensaje-cupon');
+    const campoCupon = document.querySelector('[name="cupon"]');
+    const botonAplicar = document.getElementById('btn-aplicar-cupon');
+
+    function mostrarMensaje(texto, tipo) {
+        mensaje.textContent = texto;
+        mensaje.className = 'mensaje ' + (tipo || 'exito');
+        mensaje.hidden = false;
+    }
+
+    function mostrarMensajeCupon(texto, tipo) {
+        mensajeCupon.textContent = texto;
+        mensajeCupon.className = 'mensaje-cupon ' + (tipo || 'exito');
+        mensajeCupon.hidden = false;
+    }
+
+    function pintarCarrito() {
+        pintarEncabezado('carrito');
+        const carrito = obtenerCarrito();
+        const vacio = carrito.length === 0;
+
+        document.querySelector('[data-testid="carrito-vacio"]').hidden = !vacio;
+        document.querySelector('.disposicion-carrito').hidden = vacio;
+        document.querySelector('.btn-pagar').disabled = vacio;
+
+        cuerpoTabla.innerHTML = carrito.map(linea => {
+            const p = productoPorId(linea.id);
+            return `
+        <tr class="linea-carrito">
+          <td class="nombre-linea">${p.icono} ${escaparHtml(p.nombre)}</td>
+          <td class="precio-unitario">${formatoPesos(p.precio)}</td>
+          <td>
+            <div class="control-cantidad">
+              <input type="number" class="cantidad-carrito" min="1" max="5" value="${linea.cantidad}"
+                     aria-label="Cantidad de ${escaparHtml(p.nombre)}">
+              <button type="button" class="btn-actualizar btn-texto" data-producto="${p.id}">Actualizar</button>
+            </div>
+          </td>
+          <td class="subtotal-linea">${formatoPesos(p.precio * linea.cantidad)}</td>
+          <td>
+            <button type="button" class="btn-eliminar" data-producto="${p.id}"
+                    aria-label="Eliminar ${escaparHtml(p.nombre)}">Eliminar</button>
+          </td>
+        </tr>`;
+        }).join('');
+
+        const subtotal = subtotalCarrito();
+        const descuento = valorDescuento(subtotal);
+        const codigo = cuponAplicado();
+
+        document.getElementById('subtotal').textContent = formatoPesos(subtotal);
+        document.querySelector('.fila-descuento').hidden = descuento === 0;
+        document.querySelector('[data-testid="descuento"]').textContent = formatoPesos(-descuento);
+        document.querySelector('.total-parcial').textContent = formatoPesos(subtotal - descuento);
+
+        document.querySelector('.cupon-activo').hidden = !codigo;
+        document.querySelector('[data-testid="cupon-aplicado"]').textContent = codigo || '';
+
+        const aviso = leer(CLAVES.aviso, null);
+        if (aviso) {
+            mostrarMensaje(aviso, 'aviso');
+            borrar(CLAVES.aviso);
+        }
+    }
+
+    cuerpoTabla.addEventListener('click', function (evento) {
+        const botonActualizar = evento.target.closest('.btn-actualizar');
+        const botonEliminar = evento.target.closest('.btn-eliminar');
+        const carrito = obtenerCarrito();
+
+        if (botonActualizar) {
+            const id = botonActualizar.dataset.producto;
+            const cantidad = Number(botonActualizar.parentElement.querySelector('.cantidad-carrito').value);
+
+            if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > MAX_POR_PRODUCTO) {
+                mostrarMensaje('La cantidad debe estar entre 1 y 5', 'error');
+                return;
+            }
+
+            const linea = carrito.find(l => l.id === id);
+            linea.cantidad = cantidad;
+            guardarCarrito(carrito);
+            revisarCuponVigente();
+            mostrarMensaje('Cantidad actualizada', 'exito');
+            pintarCarrito();
+        }
+
+        if (botonEliminar) {
+            const id = botonEliminar.dataset.producto;
+            const producto = productoPorId(id);
+            guardarCarrito(carrito.filter(l => l.id !== id));
+            revisarCuponVigente();
+            mostrarMensaje('Se eliminó ' + producto.nombre + ' del carrito', 'exito');
+            pintarCarrito();
+        }
+    });
+
+    botonAplicar.addEventListener('click', async function () {
+        const codigo = campoCupon.value.trim().toUpperCase();
+        mensajeCupon.hidden = true;
+
+        if (!codigo) {
+            mostrarMensajeCupon('Ingresa un código de cupón', 'error');
+            return;
+        }
+
+        botonAplicar.disabled = true;
+        mostrarCargando('Consultando el grimorio de cupones...');
+        await esperaAleatoria(400, 1000);
+        ocultarCargando();
+        botonAplicar.disabled = false;
+
+        if (cuponAplicado()) {
+            mostrarMensajeCupon('Solo se permite un cupón por compra', 'error');
+            return;
+        }
+        const cupon = CUPONES[codigo];
+        if (!cupon) {
+            mostrarMensajeCupon('Cupón no válido', 'error');
+            return;
+        }
+        if (subtotalCarrito() < cupon.minimo) {
+            mostrarMensajeCupon('Este cupón requiere una compra mínima de ' + formatoPesos(cupon.minimo), 'error');
+            return;
+        }
+
+        guardar(CLAVES.cupon, codigo);
+        campoCupon.value = '';
+        mostrarMensajeCupon('Cupón ' + codigo + ' aplicado correctamente', 'exito');
+        pintarCarrito();
+    });
+
+    document.querySelector('[data-testid="quitar-cupon"]').addEventListener('click', function () {
+        borrar(CLAVES.cupon);
+        mostrarMensajeCupon('Se quitó el cupón', 'exito');
+        pintarCarrito();
+    });
+
+    document.querySelector('.btn-pagar').addEventListener('click', function () {
+        if (obtenerCarrito().length > 0) {
+            window.location.href = 'checkout.html';
+        }
+    });
+
+    pintarCarrito();
+</script>
+</body>
+</html>
