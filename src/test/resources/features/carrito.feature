@@ -1,13 +1,16 @@
-@compra
 Feature: Shopping cart
   As a shopper
   I want to manage items and coupons in my cart
   So that I can review my purchase
 
+  @Issue-3
+  @Carrito-Vacio
   Scenario: Show the empty cart
     Given the shopper opens the cart
     Then the cart is empty
 
+  @Issue-4
+  @Carrito-ActualizarCantidad
   Scenario Outline: Update an item quantity within the allowed range
     Given the cart contains a product
     When the shopper updates the first item quantity to "<cantidad>"
@@ -19,11 +22,15 @@ Feature: Shopping cart
       | 2        |
       | 5        |
 
+  @Issue-5
+  @Carrito-EliminarUltimoItem
   Scenario: Remove the last item
     Given the cart contains a product
     When the shopper removes the first item
     Then the cart is empty
 
+  @Issue-6
+  @Carrito-CuponInvalido
   Scenario Outline: Reject an invalid coupon
     Given the cart contains a product
     When the shopper applies the invalid coupon "<codigo>"

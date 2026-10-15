@@ -6,10 +6,14 @@ Feature: Login
   Background:
     Given the user is on the login page
 
+  @Issue-1
+  @Login-Exitoso
   Scenario: Successful login with valid credentials
     When the user enters their credentials and clicks the login button
     Then the user should be redirected to their dashboard
 
+  @Issue-2
+  @Login-IntentoFallido
   Scenario Outline: Failed login attempts
     When the user enters their email "<email>" and password "<password>"
     Then they should see the error message
