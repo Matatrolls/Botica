@@ -31,22 +31,14 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
-
-      - name: Install matching ChromeDriver
-        uses: browser-actions/setup-chromedriver@v1
-        with:
-          chromedriver-version: stable
-
-      - name: Export browser paths
+      - name: Install matching Chrome/Chromium and driver
         run: |
-          echo "CHROME_BIN=$(which google-chrome || which google-chrome-stable || which chromium || which chromium-browser || echo /usr/bin/google-chrome)" >> $GITHUB_ENV
-          echo "CHROMEDRIVER_PATH=$(which chromedriver || which chromium-driver || echo /usr/bin/chromedriver)" >> $GITHUB_ENV
-          google-chrome --version || google-chrome-stable --version || chromium --version || true
-          chromedriver --version || true
+          sudo apt-get update
+          sudo apt-get install -y chromium chromium-driver
+          echo "CHROME_BIN=/usr/bin/chromium" >> $GITHUB_ENV
+          echo "CHROMEDRIVER_PATH=/usr/bin/chromedriver" >> $GITHUB_ENV
+          /usr/bin/chromium --version
+          /usr/bin/chromedriver --version
 
       - name: Cache Gradle
         uses: actions/cache@v4
