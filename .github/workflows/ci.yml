@@ -38,7 +38,8 @@ jobs:
 
       - name: Set Chrome path
         run: |
-          echo "CHROME_BIN=$(which google-chrome || which google-chrome-stable || which chromium || which chromium-browser)" >> $GITHUB_ENV
+          echo "CHROME_BIN=$(which google-chrome || which google-chrome-stable || which chromium || which chromium-browser || echo /usr/bin/google-chrome)" >> $GITHUB_ENV
+          google-chrome --version || google-chrome-stable --version || chromium --version || true
 
       - name: Cache Gradle
         uses: actions/cache@v4
