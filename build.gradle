@@ -3,6 +3,9 @@ plugins {
     id 'net.serenity-bdd.serenity-gradle-plugin' version '4.2.32'
 }
 
+def serenityVersion = '4.2.32'
+def seleniumVersion = '4.38.0'
+
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -13,27 +16,22 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.14.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.14.0'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'junit:junit:4.13.2'
 
-    testImplementation 'net.serenity-bdd:serenity-junit:4.3.1'
-    implementation 'net.serenity-bdd:serenity-core:4.2.32'
-    implementation 'net.serenity-bdd:serenity-cucumber:4.2.32'
-    implementation 'net.serenity-bdd:serenity-screenplay:4.2.32'
-    implementation 'net.serenity-bdd:serenity-screenplay-webdriver:4.2.32'
-    implementation("org.seleniumhq.selenium:selenium-java:4.38.0")
+    implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-junit:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-cucumber:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:${serenityVersion}"
 
-    // WebDriver
-    testImplementation 'org.seleniumhq.selenium:selenium-java:4.15.0'
-    testImplementation 'org.seleniumhq.selenium:selenium-chrome-driver:4.15.0'
-    testImplementation 'org.seleniumhq.selenium:selenium-edge-driver:4.15.0'
-    testImplementation 'org.seleniumhq.selenium:selenium-firefox-driver:4.15.0'
-
+    implementation "org.seleniumhq.selenium:selenium-java:${seleniumVersion}"
+    implementation "org.seleniumhq.selenium:selenium-chrome-driver:${seleniumVersion}"
+    implementation "org.seleniumhq.selenium:selenium-edge-driver:${seleniumVersion}"
+    implementation "org.seleniumhq.selenium:selenium-firefox-driver:${seleniumVersion}"
 }
 
 test {
-    useJUnitPlatform()
+    useJUnit()
     test.finalizedBy(aggregate)
     // Pasar propiedades del sistema a los tests
     systemProperties = System.properties
