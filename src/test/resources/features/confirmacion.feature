@@ -1,3 +1,4 @@
+@compra
 Feature: Order confirmation
   As a shopper
   I want to review my order confirmation

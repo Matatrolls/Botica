@@ -1,3 +1,4 @@
+@compra
 Feature: Shopping cart
   As a shopper
   I want to manage items and coupons in my cart

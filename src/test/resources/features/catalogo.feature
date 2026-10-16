@@ -1,3 +1,4 @@
+@compra
 Feature: Product catalog
   As a shopper
   I want to find products and add them to the cart

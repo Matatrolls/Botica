@@ -1,3 +1,4 @@
+@compra
 Feature: Checkout
   As a shopper
   I want to provide delivery details and confirm my order
