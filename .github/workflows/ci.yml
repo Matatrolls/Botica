@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       testTag:
-        description: 'Tag de Karate a ejecutar (puede incluir o no @). Si se deja vacío en ejecución manual, se usará @smoketest en integración.'
+        description: 'Tag de issue Cucumber a ejecutar (puede incluir o no @). Si se deja vacío, ejecuta todo el suite.'
         required: false
         default: ''
 
@@ -61,7 +61,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Run tests (with tag support)
+      - name: Run tests (with issue tag support)
         id: test_execution
         continue-on-error: true
         env:
@@ -70,25 +70,22 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             tag='${{ github.event.inputs.testTag }}'
-            if [ -z "$tag" ]; then
-              tag='@smoketest'
-            fi
           else
-            tag='@smoketest'
+            tag=''
           fi
 
           if [ -n "$tag" ] && [ "${tag#@}" = "$tag" ]; then
             tag="@$tag"
           fi
 
-          echo "Using Karate tag: '$tag'"
+          echo "Using Cucumber tag: '${tag:-ALL}'"
           echo "tag=$tag" >> $GITHUB_ENV
 
           if [ -n "$tag" ]; then
             ./gradlew clean test --no-daemon --console=plain --stacktrace --refresh-dependencies \
               -Dwebdriver.chrome.driver="$CHROMEDRIVER_PATH" \
               -Dwebdriver.chrome.bin="$CHROME_BIN" \
-              -Dkarate.options="--tags $tag"
+              -Dcucumber.filter.tags="$tag"
           else
             ./gradlew clean test --no-daemon --console=plain --stacktrace --refresh-dependencies \
               -Dwebdriver.chrome.driver="$CHROMEDRIVER_PATH" \

@@ -35,6 +35,11 @@ dependencies {
 test {
     useJUnitPlatform()
     test.finalizedBy(aggregate)
+
+    // Propagar filtros de Cucumber desde CI o ejecución manual
+    systemProperty 'cucumber.filter.tags', System.getProperty('cucumber.filter.tags', '')
+    systemProperty 'cucumber.plugin', System.getProperty('cucumber.plugin', 'pretty')
+
     // Pasar propiedades del sistema a los tests
     systemProperties = System.properties
 }
