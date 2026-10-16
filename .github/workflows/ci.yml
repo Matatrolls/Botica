@@ -56,8 +56,9 @@ jobs:
       - name: Run tests (with tag support)
         id: test_execution
         continue-on-error: true
+        env:
+          CHROME_BIN: ${{ env.CHROME_BIN }}
         run: |
-          # Determine tag: use workflow_dispatch input when present, otherwise default to @smoketest for CI events
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             tag='${{ github.event.inputs.testTag }}'
             if [ -z "$tag" ]; then
@@ -67,7 +68,6 @@ jobs:
             tag='@smoketest'
           fi
 
-          # normalize: if tag is not empty and doesn't start with @, prepend it
           if [ -n "$tag" ] && [ "${tag#@}" = "$tag" ]; then
             tag="@$tag"
           fi
